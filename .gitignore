@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase local CLI cache (not migrations)
+supabase/.temp/
+
+# Local CRM exports (often contain PII)
+app/crm_uploads/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
