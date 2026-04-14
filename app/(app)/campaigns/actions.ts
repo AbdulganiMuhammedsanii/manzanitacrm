@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { runOutboundBatch } from "@/lib/campaign-dispatch";
 import { fetchCampaignPageData } from "@/lib/campaign-data";
+import { SAMPLE_MERGE_LEAD } from "@/lib/campaign-sample-lead";
 import type { CampaignConfigRow } from "@/lib/database.types";
+import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
+import { sendGmailMessage } from "@/lib/gmail-send";
+import { applyMergeTags } from "@/lib/merge-tags";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export type StepInput = {
@@ -82,4 +86,48 @@ export async function dispatchCampaignBatch() {
   revalidatePath("/dashboard");
   const snapshot = await fetchCampaignPageData();
   return { result, snapshot };
+}
+
+export type SendTestEmailResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Sends exactly one email via Gmail. Does not write to outbound_send_log or change leads.
+ * Uses merge tags with the same sample data as the live preview.
+ */
+export async function sendTestCampaignEmail(params: {
+  toEmail: string;
+  subject: string;
+  body: string;
+}): Promise<SendTestEmailResult> {
+  const to = params.toEmail.trim();
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+  if (!params.subject.trim() || !params.body.trim()) {
+    return { ok: false, error: "Fill in subject and body for this email step." };
+  }
+
+  const integration = await getGmailIntegration(supabaseAdmin);
+  if (!isGmailReady(integration)) {
+    return { ok: false, error: "Connect Gmail under Settings first." };
+  }
+
+  const mergedSubject = applyMergeTags(params.subject, SAMPLE_MERGE_LEAD);
+  const mergedBody = applyMergeTags(params.body, SAMPLE_MERGE_LEAD);
+  const subjectLine = `[Test] ${mergedSubject}`.slice(0, 998);
+
+  const mail = await sendGmailMessage({
+    refreshToken: integration.refresh_token,
+    fromEmail: integration.google_email,
+    to,
+    subject: subjectLine,
+    bodyText:
+      mergedBody +
+      "\n\n—\nThis is a one-off test from your CRM. It did not run the campaign batch or change any leads.",
+  });
+
+  if (!mail.ok) {
+    return { ok: false, error: mail.error };
+  }
+  return { ok: true };
 }

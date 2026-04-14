@@ -97,6 +97,23 @@ export type OutboundSendLogInsert = Omit<OutboundSendLogRow, "id"> & {
   id?: string;
 };
 
+export type GmailIntegrationRow = {
+  id: string;
+  google_email: string | null;
+  refresh_token: string | null;
+  connected_at: string | null;
+  updated_at: string;
+};
+
+export type GmailIntegrationInsert = Omit<GmailIntegrationRow, "id" | "updated_at"> & {
+  id?: string;
+  updated_at?: string;
+};
+
+export type GmailIntegrationUpdate = Partial<
+  Omit<GmailIntegrationRow, "id" | "updated_at">
+> & { updated_at?: string };
+
 export type Database = {
   public: {
     Tables: {
@@ -128,6 +145,12 @@ export type Database = {
         Row: OutboundSendLogRow;
         Insert: OutboundSendLogInsert;
         Update: Partial<Omit<OutboundSendLogRow, "id">>;
+        Relationships: [];
+      };
+      gmail_integration: {
+        Row: GmailIntegrationRow;
+        Insert: GmailIntegrationInsert;
+        Update: GmailIntegrationUpdate;
         Relationships: [];
       };
     };

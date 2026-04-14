@@ -36,7 +36,23 @@ export type AnalyticsActivityRow = {
   status: { label: string; variant: "intent" | "negotiation" | "warming" };
   region: string;
   value: string;
+  /** Relative time from `updated_at` for dashboards */
+  timeLabel: string;
 };
+
+function formatRelativeActivityTime(iso: string): string {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return "Just now";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 
@@ -227,7 +243,9 @@ export async function fetchAnalyticsActivityRows(limit = 8): Promise<AnalyticsAc
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
-    .select("id, company, first_name, last_name, email, city, county, state, email_status, updated_at")
+    .select(
+      "id, company, first_name, last_name, email, city, county, state, email_status, updated_at"
+    )
     .in("email_status", ["opened", "clicked"])
     .order("updated_at", { ascending: false })
     .limit(limit);
@@ -248,6 +266,7 @@ export async function fetchAnalyticsActivityRows(limit = 8): Promise<AnalyticsAc
     | "county"
     | "state"
     | "email_status"
+    | "updated_at"
   >;
 
   function initialsFrom(row: ActivityLead): string {
@@ -280,6 +299,7 @@ export async function fetchAnalyticsActivityRows(limit = 8): Promise<AnalyticsAc
         : { label: "Opened", variant: "warming" as const },
       region: place,
       value: "—",
+      timeLabel: formatRelativeActivityTime(row.updated_at),
     };
   });
 }

@@ -21,7 +21,7 @@ export function GeographicDistribution({ counties, totalLeads }: Props) {
 
   return (
     <div className="rounded-xl border-t border-slate-800/50 bg-surface-container-low p-6 sm:p-8">
-      <h3 className="mb-2 font-headline text-lg font-bold text-white">California Distribution</h3>
+      <h3 className="mb-2 font-headline text-lg font-bold text-white">Geographic distribution</h3>
       <p className="mb-6 text-xs text-on-surface-variant">
         Top counties by lead volume
         {totalLeads > 0 ? ` (${totalLeads.toLocaleString()} total)` : ""}.

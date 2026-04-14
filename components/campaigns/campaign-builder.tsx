@@ -17,27 +17,15 @@ import {
   type SequenceStepDraft,
 } from "@/components/campaigns/campaign-sequence-editor";
 import { CampaignPreviewPhone } from "@/components/campaigns/campaign-preview-phone";
+import { CampaignTestEmailDialog } from "@/components/campaigns/campaign-test-email-dialog";
 import type { CampaignPageData } from "@/lib/campaign-data";
-import type { LeadRow } from "@/lib/database.types";
+import { SAMPLE_MERGE_LEAD } from "@/lib/campaign-sample-lead";
 import { applyMergeTags } from "@/lib/merge-tags";
-import { dispatchCampaignBatch, saveCampaignSequence } from "@/app/(app)/campaigns/actions";
-
-const PREVIEW_LEAD: LeadRow = {
-  id: "00000000-0000-0000-0000-000000000000",
-  first_name: "John",
-  last_name: "Doe",
-  email: "j.doe@techcorp.com",
-  phone: "(555) 555-0100",
-  company: "TechCorp",
-  city: "Los Angeles",
-  county: "Los Angeles",
-  state: "CA",
-  license_number: "DEMO-001",
-  email_status: "delivered",
-  is_emailed: true,
-  created_at: new Date(0).toISOString(),
-  updated_at: new Date(0).toISOString(),
-};
+import {
+  dispatchCampaignBatch,
+  saveCampaignSequence,
+  sendTestCampaignEmail,
+} from "@/app/(app)/campaigns/actions";
 
 function normalizeSteps(rows: CampaignPageData["steps"]): SequenceStepDraft[] {
   const byIndex = new Map(rows.map((r) => [r.step_index, r]));
@@ -51,16 +39,6 @@ function normalizeSteps(rows: CampaignPageData["steps"]): SequenceStepDraft[] {
   });
 }
 
-function previewFromMergedBody(merged: string) {
-  const paragraphs = merged
-    .split(/\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-  const snippet = paragraphs.find((p) => p.length > 24) ?? paragraphs[0] ?? merged.slice(0, 140);
-  const closing = paragraphs.length > 1 ? (paragraphs[paragraphs.length - 1] ?? snippet) : snippet;
-  return { snippet, closing };
-}
-
 type CampaignBuilderProps = {
   initial: CampaignPageData;
 };
@@ -69,6 +47,7 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
   const router = useRouter();
   const [savePending, startSave] = useTransition();
   const [dispatchPending, startDispatch] = useTransition();
+  const [testPending, startTest] = useTransition();
 
   const [name, setName] = useState(initial.config.name);
   const [activeStep, setActiveStep] = useState(1);
@@ -89,17 +68,20 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
     maxPerDay: initial.config.max_sends_per_day,
   });
   const [banner, setBanner] = useState<string | null>(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const [testNotice, setTestNotice] = useState<string | null>(null);
 
   const current = steps.find((s) => s.stepIndex === activeStep) ?? steps[0];
 
-  const { mergedSubject, snippet, closing } = useMemo(() => {
+  const { mergedSubject, mergedBody } = useMemo(() => {
     if (!current) {
-      return { mergedSubject: "", snippet: "", closing: "" };
+      return { mergedSubject: "", mergedBody: "" };
     }
-    const mergedSubject = applyMergeTags(current.subject, PREVIEW_LEAD);
-    const mergedBody = applyMergeTags(current.body, PREVIEW_LEAD);
-    const { snippet: sn, closing: cl } = previewFromMergedBody(mergedBody);
-    return { mergedSubject, snippet: sn, closing: cl };
+    return {
+      mergedSubject: applyMergeTags(current.subject, SAMPLE_MERGE_LEAD),
+      mergedBody: applyMergeTags(current.body, SAMPLE_MERGE_LEAD),
+    };
   }, [current]);
 
   function updateStepSubject(stepIndex: number, value: string) {
@@ -129,6 +111,24 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
       setLastUpdated(result.updatedAt);
       setQueueStats((q) => ({ ...q, maxPerDay: schedule.maxSendsPerDay }));
       router.refresh();
+    });
+  }
+
+  function handleSendTest() {
+    const cur = steps.find((s) => s.stepIndex === activeStep) ?? steps[0];
+    if (!cur) return;
+    setTestNotice(null);
+    startTest(async () => {
+      const r = await sendTestCampaignEmail({
+        toEmail: testTo,
+        subject: cur.subject,
+        body: cur.body,
+      });
+      if (r.ok) {
+        setTestNotice("Sent. Check the inbox (subject starts with [Test]).");
+      } else {
+        setTestNotice(r.error);
+      }
     });
   }
 
@@ -179,7 +179,7 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
               maxPerDay: schedule.maxSendsPerDay,
             }}
           />
-          <CampaignPreviewPhone subjectLine={mergedSubject} previewSnippet={snippet} closingLine={closing} />
+          <CampaignPreviewPhone subjectLine={mergedSubject} bodyText={mergedBody} />
         </section>
       </div>
       <CampaignBuilderFooter
@@ -187,6 +187,20 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
         dispatching={dispatchPending}
         onSave={handleSave}
         onDispatchNow={handleDispatch}
+        onOpenTestEmail={() => {
+          setTestNotice(null);
+          setTestDialogOpen(true);
+        }}
+      />
+      <CampaignTestEmailDialog
+        open={testDialogOpen}
+        onClose={() => setTestDialogOpen(false)}
+        toEmail={testTo}
+        onToEmailChange={setTestTo}
+        onSend={handleSendTest}
+        pending={testPending}
+        notice={testNotice}
+        activeStepLabel={`Email ${activeStep}`}
       />
     </div>
   );

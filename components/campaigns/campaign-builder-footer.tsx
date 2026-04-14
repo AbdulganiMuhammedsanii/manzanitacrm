@@ -7,6 +7,7 @@ type CampaignBuilderFooterProps = {
   dispatching: boolean;
   onSave: () => void;
   onDispatchNow: () => void;
+  onOpenTestEmail: () => void;
 };
 
 export function CampaignBuilderFooter({
@@ -14,13 +15,22 @@ export function CampaignBuilderFooter({
   dispatching,
   onSave,
   onDispatchNow,
+  onOpenTestEmail,
 }: CampaignBuilderFooterProps) {
   return (
     <footer className="z-50 flex min-h-20 shrink-0 flex-col gap-3 border-t border-outline-variant/10 bg-slate-950/80 px-6 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-8">
       <div className="flex flex-wrap items-center gap-4 text-on-surface-variant">
+        <button
+          type="button"
+          onClick={onOpenTestEmail}
+          className="flex items-center gap-2 text-on-surface transition-colors hover:text-primary"
+        >
+          <MaterialIcon name="science" className="text-lg" />
+          <span className="text-xs font-bold uppercase tracking-widest">Test one email</span>
+        </button>
         <p className="max-w-xl text-xs leading-relaxed">
-          <span className="font-bold text-on-surface">Run batch</span> sends up to today&apos;s cap (random order). Call{" "}
-          <code className="text-primary-fixed-dim">POST /api/campaign/dispatch</code> on a schedule, or use the button.
+          <span className="font-bold text-on-surface">Run batch</span> runs the real campaign (cap, logs, sequence). Use{" "}
+          <span className="font-bold text-on-surface">Test one email</span> for a single Gmail only.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-4">

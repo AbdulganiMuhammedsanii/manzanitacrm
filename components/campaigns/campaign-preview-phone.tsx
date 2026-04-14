@@ -1,23 +1,19 @@
-import Image from "next/image";
-
-const PREVIEW_IMG =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDMVDbwJzXgCRTL_BNgmeQyX1tAYWXAZDeXXlcsCnM5iXjJiwf1QhPI3A0Q7yeW8JiPOBETmu5xDmKGA-2fh0UxQOpaD1F5j-RgykY_VIQ0LF7ek8yvkMvOS0q8PsF11L0Hd58Xo6XQnRkBH6WnJOBiHiYnde-qUsVgIpkt20u2fj105sbsAEOc2yD-u34qmLAerpfOYcbzLo1K1dVrmp3P7NXON-t8XOsTeON2s0sPinP4PUTKh6Abxh0VxtAz9PN_B27tRe_CdyAV";
-
 type CampaignPreviewPhoneProps = {
+  /** Merged subject (e.g. tags already resolved for preview) */
   subjectLine: string;
-  previewSnippet: string;
-  closingLine: string;
+  /** Full merged message body — shown in full with line breaks preserved */
+  bodyText: string;
 };
 
-export function CampaignPreviewPhone({
-  subjectLine,
-  previewSnippet,
-  closingLine,
-}: CampaignPreviewPhoneProps) {
+export function CampaignPreviewPhone({ subjectLine, bodyText }: CampaignPreviewPhoneProps) {
   const subject =
     subjectLine
       .replace(/\{\{\s*company_name\s*\}\}/gi, "TechCorp")
       .trim() || "Exclusive Security Assessment for TechCorp";
+
+  const body =
+    bodyText.trim() ||
+    "Your message will appear here. Use merge tags like {{first_name}} in the editor.";
 
   return (
     <div>
@@ -40,23 +36,9 @@ export function CampaignPreviewPhone({
               </p>
             </div>
           </div>
-          <h4 className="mb-3 text-xs font-bold leading-tight">{subject}</h4>
-          <div className="space-y-3 text-[10px] leading-relaxed text-slate-600">
-            <p>Hello John,</p>
-            <p>{previewSnippet}</p>
-            <div className="relative h-24 w-full overflow-hidden rounded-lg">
-              <Image
-                src={PREVIEW_IMG}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="280px"
-              />
-            </div>
-            <p>{closingLine}</p>
-            <div className="rounded-md bg-emerald-600 py-2 text-center text-[9px] font-bold text-white">
-              View My Assessment
-            </div>
+          <h4 className="mb-3 break-words text-xs font-bold leading-tight">{subject}</h4>
+          <div className="whitespace-pre-wrap break-words text-[10px] leading-relaxed text-slate-600">
+            {body}
           </div>
         </div>
       </div>

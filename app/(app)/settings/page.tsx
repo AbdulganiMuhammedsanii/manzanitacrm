@@ -1,15 +1,32 @@
 import type { Metadata } from "next";
+import { GmailIntegrationCard } from "@/components/settings/gmail-integration-card";
 import { SettingsDangerZone } from "@/components/settings/settings-danger-zone";
 import { SettingsProfileCard } from "@/components/settings/settings-profile-card";
 import { SettingsRow } from "@/components/settings/settings-row";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
+import { getGmailOAuthRedirectUri } from "@/lib/app-url";
+import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
   title: "Settings",
 };
 
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const gmailStatus = typeof sp.gmail === "string" ? sp.gmail : undefined;
+  const gmailReason = typeof sp.reason === "string" ? sp.reason : undefined;
+
+  const gmailRow = await getGmailIntegration(supabaseAdmin);
+  const gmailConnected = isGmailReady(gmailRow);
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
       <div>
@@ -87,21 +104,16 @@ export default function SettingsPage() {
         />
       </SettingsSection>
 
-      <SettingsSection
-        title="Integrations"
-        description="Connected services and API access."
-      >
-        <SettingsRow
-          icon="mail"
-          label="Email provider"
-          description="Linked to campaigns and sequence sends."
-          action={
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              Connected
-            </span>
-          }
-        />
+      <SettingsSection title="Integrations" description="Connected services and API access.">
+        <div className="px-1 pb-2">
+          <GmailIntegrationCard
+            connected={gmailConnected}
+            email={gmailRow?.google_email ?? null}
+            oauthRedirectUri={getGmailOAuthRedirectUri()}
+            status={gmailStatus}
+            reason={gmailReason}
+          />
+        </div>
         <SettingsRow
           icon="webhook"
           label="Webhook endpoints"

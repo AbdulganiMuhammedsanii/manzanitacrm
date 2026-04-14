@@ -3,6 +3,8 @@ import { applyMergeTags } from "@/lib/campaign-merge";
 import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { calendarDayInTimeZone, isWithinSendWindow } from "@/lib/campaign-time";
 import type { Database, LeadRow } from "@/lib/database.types";
+import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
+import { sendGmailMessage } from "@/lib/gmail-send";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -116,6 +118,8 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
   const stepByIndex = new Map(steps.map((s) => [s.step_index, s]));
   const isoNow = now.toISOString();
 
+  const gmailRow = await getGmailIntegration(admin);
+
   const jobs: Job[] = [];
 
   // Step 1: never emailed, valid email
@@ -213,6 +217,20 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
 
     const subject = applyMergeTags(step.subject, lr);
     const body = applyMergeTags(step.body, lr);
+
+    if (isGmailReady(gmailRow)) {
+      const mail = await sendGmailMessage({
+        refreshToken: gmailRow.refresh_token,
+        fromEmail: gmailRow.google_email,
+        to: lr.email!.trim(),
+        subject,
+        bodyText: body,
+      });
+      if (!mail.ok) {
+        console.error("Gmail send failed:", mail.error);
+        continue;
+      }
+    }
 
     const { error: insErr } = await admin.from("outbound_send_log").insert({
       lead_id: job.leadId,

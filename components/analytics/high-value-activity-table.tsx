@@ -10,6 +10,7 @@ const demoRows: AnalyticsActivityRow[] = [
     status: { label: "High Intent", variant: "intent" },
     region: "Los Angeles, CA",
     value: "$14,500/mo",
+    timeLabel: "2h ago",
   },
   {
     id: "demo-2",
@@ -20,6 +21,7 @@ const demoRows: AnalyticsActivityRow[] = [
     status: { label: "Negotiation", variant: "negotiation" },
     region: "San Francisco, CA",
     value: "$28,000/mo",
+    timeLabel: "5h ago",
   },
   {
     id: "demo-3",
@@ -30,6 +32,7 @@ const demoRows: AnalyticsActivityRow[] = [
     status: { label: "Warming", variant: "warming" },
     region: "Fresno, CA",
     value: "$8,200/mo",
+    timeLabel: "Yesterday",
   },
   {
     id: "demo-4",
@@ -40,6 +43,7 @@ const demoRows: AnalyticsActivityRow[] = [
     status: { label: "High Intent", variant: "intent" },
     region: "Irvine, CA",
     value: "$19,900/mo",
+    timeLabel: "Yesterday",
   },
 ];
 
