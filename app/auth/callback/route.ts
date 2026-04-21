@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { AUTH_RETURN_PATH_COOKIE } from "@/lib/auth-return-path";
+import { getRequestPublicOrigin } from "@/lib/app-url";
 import type { Database } from "@/lib/database.types";
 
 function resolveNextPath(request: Request, cookieStore: Awaited<ReturnType<typeof cookies>>): string {
@@ -28,13 +29,14 @@ function resolveNextPath(request: Request, cookieStore: Awaited<ReturnType<typeo
  * Email magic-link (and OAuth) redirect handler — exchanges `code` for a session cookie.
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const publicOrigin = getRequestPublicOrigin(request);
   const code = searchParams.get("code");
   const cookieStore = await cookies();
   const next = resolveNextPath(request, cookieStore);
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=missing_code`);
+    return NextResponse.redirect(`${publicOrigin}/login?error=missing_code`);
   }
 
   const supabase = createServerClient<Database>(
@@ -54,10 +56,10 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(error.message)}`);
+    return NextResponse.redirect(`${publicOrigin}/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  const res = NextResponse.redirect(`${origin}${next}`);
+  const res = NextResponse.redirect(`${publicOrigin}${next}`);
   res.cookies.delete(AUTH_RETURN_PATH_COOKIE);
   return res;
 }
