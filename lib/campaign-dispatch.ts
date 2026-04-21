@@ -4,8 +4,9 @@ import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { calendarDayInTimeZone, isWithinSendWindow } from "@/lib/campaign-time";
 import type { Database, LeadRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
+import { buildCampaignEmailHtml } from "@/lib/campaign-email-html";
 import { sendGmailMessage } from "@/lib/gmail-send";
-import { buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
+import { appendUnsubscribeFooter, buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -240,7 +241,9 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
     const mergeExtras = { unsubscribe_url: unsubUrl, unsubscribe_link: unsubUrl, opt_out_url: unsubUrl };
 
     const subject = applyMergeTags(step.subject, lr, mergeExtras);
-    const body = applyMergeTags(step.body, lr, mergeExtras);
+    const bodyRaw = applyMergeTags(step.body, lr, mergeExtras);
+    const body = appendUnsubscribeFooter(bodyRaw, unsubUrl);
+    const bodyHtml = buildCampaignEmailHtml(body, unsubUrl);
 
     if (isGmailReady(gmailRow)) {
       const mail = await sendGmailMessage({
@@ -249,6 +252,7 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
         to: lr.email!.trim(),
         subject,
         bodyText: body,
+        bodyHtml,
       });
       if (!mail.ok) {
         console.error("Gmail send failed:", mail.error);

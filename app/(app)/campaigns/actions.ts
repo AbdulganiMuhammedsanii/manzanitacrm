@@ -8,8 +8,9 @@ import { SAMPLE_MERGE_LEAD } from "@/lib/campaign-sample-lead";
 import type { CampaignConfigRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { sendGmailMessage } from "@/lib/gmail-send";
+import { buildCampaignEmailHtml, buildTestEmailDisclaimerHtml } from "@/lib/campaign-email-html";
 import { applyMergeTags } from "@/lib/merge-tags";
-import { buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
+import { appendUnsubscribeFooter, buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -92,9 +93,21 @@ export async function dispatchCampaignBatch() {
 
 export type SendTestEmailResult = { ok: true } | { ok: false; error: string };
 
+async function resolveLeadRowForTestEmail(email: string) {
+  const trimmed = email.trim();
+
+  const { data: exact } = await supabaseAdmin.from("leads").select("*").eq("email", trimmed).maybeSingle();
+  if (exact) {
+    return exact;
+  }
+
+  const { data: ciRows } = await supabaseAdmin.from("leads").select("*").ilike("email", trimmed).limit(1);
+  return ciRows?.[0] ?? null;
+}
+
 /**
  * Sends exactly one email via Gmail. Does not write to outbound_send_log or change leads.
- * Uses merge tags with the same sample data as the live preview.
+ * Merge tags + unsubscribe use the lead row matching “To” when present; otherwise the demo sample.
  */
 export async function sendTestCampaignEmail(params: {
   toEmail: string;
@@ -122,24 +135,32 @@ export async function sendTestCampaignEmail(params: {
     return { ok: false, error: "Connect Gmail under Settings (for your account) first." };
   }
 
-  const demoUnsub = buildUnsubscribeUrl(SAMPLE_MERGE_LEAD.id);
+  const matchedLead = await resolveLeadRowForTestEmail(to);
+  const mergeLead = matchedLead ?? SAMPLE_MERGE_LEAD;
+  const unsubUrl = buildUnsubscribeUrl(mergeLead.id);
   const mergeExtras = {
-    unsubscribe_url: demoUnsub,
-    unsubscribe_link: demoUnsub,
-    opt_out_url: demoUnsub,
+    unsubscribe_url: unsubUrl,
+    unsubscribe_link: unsubUrl,
+    opt_out_url: unsubUrl,
   };
-  const mergedSubject = applyMergeTags(params.subject, SAMPLE_MERGE_LEAD, mergeExtras);
-  const mergedBody = applyMergeTags(params.body, SAMPLE_MERGE_LEAD, mergeExtras);
+  const mergedSubject = applyMergeTags(params.subject, mergeLead, mergeExtras);
+  const mergedCore = applyMergeTags(params.body, mergeLead, mergeExtras);
+  const mergedBodyWithOptOut = appendUnsubscribeFooter(mergedCore, unsubUrl);
+  const plainFull =
+    mergedBodyWithOptOut +
+    "\n\n—\nThis is a one-off test from your CRM. It did not run the campaign batch or change any leads.";
   const subjectLine = `[Test] ${mergedSubject}`.slice(0, 998);
+
+  const htmlFull =
+    buildCampaignEmailHtml(mergedBodyWithOptOut, unsubUrl) + buildTestEmailDisclaimerHtml();
 
   const mail = await sendGmailMessage({
     refreshToken: integration.refresh_token,
     fromEmail: integration.google_email,
     to,
     subject: subjectLine,
-    bodyText:
-      mergedBody +
-      "\n\n—\nThis is a one-off test from your CRM. It did not run the campaign batch or change any leads.",
+    bodyText: plainFull,
+    bodyHtml: htmlFull,
   });
 
   if (!mail.ok) {

@@ -29,19 +29,30 @@ export async function GET(request: Request) {
   }
 
   const isoNow = new Date().toISOString();
-  const { error } = await supabaseAdmin
+  const { data: updatedRows, error } = await supabaseAdmin
     .from("leads")
     .update({
       email_status: "unsubscribed",
       updated_at: isoNow,
     })
-    .eq("id", verified.leadId);
+    .eq("id", verified.leadId)
+    .select("id");
 
   if (error) {
     console.error(error);
     return new NextResponse(
       pageHtml("Something went wrong", "We could not update your preference. Please try again later."),
       { status: 500, headers: { "Content-Type": "text/html; charset=utf-8" } }
+    );
+  }
+
+  if (!updatedRows?.length) {
+    return new NextResponse(
+      pageHtml(
+        "No contact was updated",
+        "This link doesn’t match a lead in your CRM (for example, a test email used a demo id). Nothing was changed."
+      ),
+      { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
   }
 
