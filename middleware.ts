@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
   const isAuthArea = path === "/login" || path.startsWith("/auth/");
   if (isAuthArea) {
     if (user && path === "/login") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.nextUrl));
     }
     return supabaseResponse;
   }

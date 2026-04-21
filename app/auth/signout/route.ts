@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getRequestPublicOrigin } from "@/lib/app-url";
 import type { Database } from "@/lib/database.types";
 
 export async function POST(request: Request) {
@@ -22,6 +23,6 @@ export async function POST(request: Request) {
 
   await supabase.auth.signOut();
 
-  const { origin } = new URL(request.url);
-  return NextResponse.redirect(`${origin}/login`, 303);
+  const publicOrigin = getRequestPublicOrigin(request);
+  return NextResponse.redirect(`${publicOrigin}/login`, 303);
 }
