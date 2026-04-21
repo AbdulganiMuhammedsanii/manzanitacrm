@@ -39,6 +39,8 @@ export type CampaignConfigRow = {
   timezone: string;
   send_window_start_hour: number;
   send_window_end_hour: number;
+  /** CRM user whose Gmail is used for automated batch / cron sends */
+  sender_user_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -98,20 +100,19 @@ export type OutboundSendLogInsert = Omit<OutboundSendLogRow, "id"> & {
 };
 
 export type GmailIntegrationRow = {
-  id: string;
+  user_id: string;
   google_email: string | null;
   refresh_token: string | null;
   connected_at: string | null;
   updated_at: string;
 };
 
-export type GmailIntegrationInsert = Omit<GmailIntegrationRow, "id" | "updated_at"> & {
-  id?: string;
+export type GmailIntegrationInsert = Omit<GmailIntegrationRow, "updated_at"> & {
   updated_at?: string;
 };
 
 export type GmailIntegrationUpdate = Partial<
-  Omit<GmailIntegrationRow, "id" | "updated_at">
+  Omit<GmailIntegrationRow, "user_id" | "updated_at">
 > & { updated_at?: string };
 
 export type Database = {

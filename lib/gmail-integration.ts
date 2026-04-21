@@ -1,16 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { GMAIL_INTEGRATION_ID } from "@/lib/gmail-constants";
 import type { Database, GmailIntegrationRow } from "@/lib/database.types";
 
 export type { GmailIntegrationRow };
 
 export async function getGmailIntegration(
-  admin: SupabaseClient<Database>
+  admin: SupabaseClient<Database>,
+  userId: string | null
 ): Promise<GmailIntegrationRow | null> {
+  if (!userId) {
+    return null;
+  }
+
   const { data, error } = await admin
     .from("gmail_integration")
     .select("*")
-    .eq("id", GMAIL_INTEGRATION_ID)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {

@@ -9,6 +9,7 @@ import type { CampaignConfigRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { sendGmailMessage } from "@/lib/gmail-send";
 import { applyMergeTags } from "@/lib/merge-tags";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export type StepInput = {
@@ -107,9 +108,17 @@ export async function sendTestCampaignEmail(params: {
     return { ok: false, error: "Fill in subject and body for this email step." };
   }
 
-  const integration = await getGmailIntegration(supabaseAdmin);
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Sign in to send a test email." };
+  }
+
+  const integration = await getGmailIntegration(supabaseAdmin, user.id);
   if (!isGmailReady(integration)) {
-    return { ok: false, error: "Connect Gmail under Settings first." };
+    return { ok: false, error: "Connect Gmail under Settings (for your account) first." };
   }
 
   const mergedSubject = applyMergeTags(params.subject, SAMPLE_MERGE_LEAD);

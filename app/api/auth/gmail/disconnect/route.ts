@@ -1,19 +1,33 @@
 import { NextResponse } from "next/server";
+import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { getAppBaseUrl } from "@/lib/app-url";
-import { GMAIL_INTEGRATION_ID } from "@/lib/gmail-constants";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export async function POST() {
   const base = getAppBaseUrl();
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", base), 303);
+  }
 
-  const { error } = await supabaseAdmin
-    .from("gmail_integration")
-    .update({
-      google_email: null,
-      refresh_token: null,
-      connected_at: null,
-    })
-    .eq("id", GMAIL_INTEGRATION_ID);
+  const { data: cfg } = await supabaseAdmin
+    .from("campaign_config")
+    .select("sender_user_id")
+    .eq("id", DEFAULT_CAMPAIGN_ID)
+    .maybeSingle();
+
+  if (cfg?.sender_user_id === user.id) {
+    await supabaseAdmin
+      .from("campaign_config")
+      .update({ sender_user_id: null })
+      .eq("id", DEFAULT_CAMPAIGN_ID);
+  }
+
+  const { error } = await supabaseAdmin.from("gmail_integration").delete().eq("user_id", user.id);
 
   if (error) {
     console.error(error);

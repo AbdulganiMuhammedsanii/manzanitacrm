@@ -29,7 +29,7 @@ function sumCountsForKeys(tally: Map<string, number>, keys: string[]): number {
  * plus week-over-week comparison to the previous 7 days.
  */
 export async function fetchWeeklyOutboundSummary(): Promise<WeeklyOutboundSummary> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { data: cfg } = await supabase
     .from("campaign_config")

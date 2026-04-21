@@ -5,7 +5,13 @@ import { usePathname } from "next/navigation";
 import { CrmSidebar } from "@/components/crm/crm-sidebar";
 import { CrmTopbar } from "@/components/crm/crm-topbar";
 
-export function CrmShell({ children }: { children: React.ReactNode }) {
+export function CrmShell({
+  children,
+  userEmail,
+}: {
+  children: React.ReactNode;
+  userEmail: string | null;
+}) {
   const pathname = usePathname();
   const fullBleed =
     pathname === "/campaigns" || pathname?.startsWith("/campaigns/");
@@ -32,7 +38,7 @@ export function CrmShell({ children }: { children: React.ReactNode }) {
         <CrmSidebar onNavigate={() => setMobileNavOpen(false)} />
       </div>
 
-      <CrmTopbar onMenuClick={() => setMobileNavOpen(true)} />
+      <CrmTopbar onMenuClick={() => setMobileNavOpen(true)} userEmail={userEmail} />
 
       <div className="min-h-screen pt-16 lg:pl-64">
         <div

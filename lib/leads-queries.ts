@@ -1,5 +1,12 @@
 import type { LeadRow as DbLead } from "@/lib/database.types";
+import {
+  PAGE_SIZE_OPTIONS,
+  parseLeadsPagination,
+  parseLocationQuery,
+} from "@/lib/leads-params";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export { PAGE_SIZE_OPTIONS, parseLeadsPagination, parseLocationQuery } from "@/lib/leads-params";
 
 export type LeadsStats = {
   total: number;
@@ -54,25 +61,6 @@ function formatRelativeActivityTime(iso: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-
-export function parseLeadsPagination(sp: {
-  page?: string;
-  per_page?: string;
-}): { page: number; perPage: (typeof PAGE_SIZE_OPTIONS)[number] } {
-  const rawPage = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
-  const rawPer = parseInt(sp.per_page ?? "20", 10);
-  const perPage = PAGE_SIZE_OPTIONS.includes(rawPer as (typeof PAGE_SIZE_OPTIONS)[number])
-    ? (rawPer as (typeof PAGE_SIZE_OPTIONS)[number])
-    : 20;
-  return { page: rawPage, perPage };
-}
-
-/** `location` matches county, city, or state (partial, case-insensitive). */
-export function parseLocationQuery(sp: { location?: string }): string {
-  return (sp.location ?? "").trim().replace(/,/g, " ");
-}
-
 /** Escape `%` / `_` for PostgREST `ilike` patterns. */
 function escapeIlikePattern(term: string): string {
   return term.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
@@ -86,7 +74,7 @@ function locationOrFilter(location: string): string | null {
 }
 
 export async function fetchLeadsStats(): Promise<LeadsStats> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const [
     { count: total, error: e1 },
@@ -137,7 +125,7 @@ export async function fetchLeadsPage(
   perPage: number,
   location = ""
 ): Promise<{ rows: DbLead[]; total: number; page: number }> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const loc = parseLocationQuery({ location });
   const orF = locationOrFilter(loc);
 
@@ -175,7 +163,7 @@ export async function fetchLeadsPage(
 
 /** Top counties by lead volume for the region chart (in-memory aggregate; fine for ~few k rows). */
 export async function fetchCountyDistribution(limit = 5): Promise<CountyBar[]> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("leads").select("county");
 
   if (error || !data) {
@@ -201,7 +189,7 @@ export async function fetchCountyDistribution(limit = 5): Promise<CountyBar[]> {
 }
 
 export async function fetchEmailFunnelMetrics(): Promise<EmailFunnelMetrics> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const [
     { count: sent, error: e0 },
@@ -240,7 +228,7 @@ export async function fetchEmailFunnelMetrics(): Promise<EmailFunnelMetrics> {
 
 /** Recent high-engagement rows for the analytics activity table (opened / clicked). */
 export async function fetchAnalyticsActivityRows(limit = 8): Promise<AnalyticsActivityRow[]> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("leads")
     .select(

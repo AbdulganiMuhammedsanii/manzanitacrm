@@ -30,7 +30,7 @@ export function CampaignPreviewPhone({ subjectLine, bodyText }: CampaignPreviewP
               SC
             </div>
             <div>
-              <p className="text-[10px] font-bold">SecuriCorp Admin</p>
+              <p className="text-[10px] font-bold">Manzanita CRM</p>
               <p className="text-[8px] text-slate-400">
                 To: John Doe &lt;j.doe@techcorp.com&gt;
               </p>

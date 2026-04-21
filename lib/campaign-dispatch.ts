@@ -118,7 +118,7 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
   const stepByIndex = new Map(steps.map((s) => [s.step_index, s]));
   const isoNow = now.toISOString();
 
-  const gmailRow = await getGmailIntegration(admin);
+  const gmailRow = await getGmailIntegration(admin, cfg.sender_user_id ?? null);
 
   const jobs: Job[] = [];
 

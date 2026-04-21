@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { getAppBaseUrl, getGmailOAuthRedirectUri } from "@/lib/app-url";
-import { GMAIL_INTEGRATION_ID } from "@/lib/gmail-constants";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 const STATE_COOKIE = "gmail_oauth_state";
@@ -28,6 +29,14 @@ export async function GET(req: Request) {
   cookieStore.delete(STATE_COOKIE);
   if (!expected || expected !== state) {
     return fail("bad_state");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return fail("crm_session_expired");
   }
 
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
@@ -67,7 +76,7 @@ export async function GET(req: Request) {
     const { data: existing } = await supabaseAdmin
       .from("gmail_integration")
       .select("refresh_token")
-      .eq("id", GMAIL_INTEGRATION_ID)
+      .eq("user_id", user.id)
       .maybeSingle();
     refreshToken = existing?.refresh_token ?? undefined;
   }
@@ -89,18 +98,32 @@ export async function GET(req: Request) {
     return fail("no_email");
   }
 
-  const { error: upErr } = await supabaseAdmin
-    .from("gmail_integration")
-    .update({
+  const { error: upErr } = await supabaseAdmin.from("gmail_integration").upsert(
+    {
+      user_id: user.id,
       google_email: googleEmail,
       refresh_token: refreshToken,
       connected_at: new Date().toISOString(),
-    })
-    .eq("id", GMAIL_INTEGRATION_ID);
+    },
+    { onConflict: "user_id" }
+  );
 
   if (upErr) {
     console.error(upErr);
     return fail("db_update");
+  }
+
+  const { data: cfg } = await supabaseAdmin
+    .from("campaign_config")
+    .select("sender_user_id")
+    .eq("id", DEFAULT_CAMPAIGN_ID)
+    .maybeSingle();
+
+  if (cfg && cfg.sender_user_id == null) {
+    await supabaseAdmin
+      .from("campaign_config")
+      .update({ sender_user_id: user.id })
+      .eq("id", DEFAULT_CAMPAIGN_ID);
   }
 
   return NextResponse.redirect(new URL("/settings?gmail=connected", base));

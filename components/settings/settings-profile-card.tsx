@@ -2,9 +2,16 @@ import Image from "next/image";
 import { MaterialIcon } from "@/components/crm/material-icon";
 
 const AVATAR_SRC =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuD5rDxxIT3zMqeLdFfzExVr7dfpA79wE1YoryjmfqKroHB5ngZHRQ3yPCkjO9J2yejn4C5uyr8uVVPNewrpWMj6hpPBukOScaGArAnmQt4eyyyhfD7GAx-GC1nVyAt7u-qT92cZq_FMVdTQemvGmxhdVzCoa3g-yumdxchxE5TEIgsC87w-iQ1uzvjkTLiDQGlwwBDnHQLMxc7H3kJJRVJrDz1qLxJUkXCxJFdN2RAkoYmCC_OUxYYJwItY30IDBBoIo0EM4k6D4JdK";
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuD5rDxxIT3zMqeLdFfzExVr7dfpA79E1YoryjmfqKroHB5ngZHRQ3yPCkjO9J2yejn4C5uyr8uVVPNewrpWMj6hpPBukOScaGArAnmQt4eyyyhfD7GAx-GC1nVyAt7u-qT92cZq_FMVdTQemvGmxhdVzCoa3g-yumdxchxE5TEIgsC87w-iQ1uzvjkTLiDQGlwwBDnHQLMxc7H3kJJRVJrDz1qLxJUkXCxJFdN2RAkoYmCC_OUxYYJwItY30IDBBoIo0EM4k6D4JdK";
 
-export function SettingsProfileCard() {
+type SettingsProfileCardProps = {
+  email: string | null;
+};
+
+export function SettingsProfileCard({ email }: SettingsProfileCardProps) {
+  const displayName = email?.split("@")[0]?.replace(/\./g, " ") ?? "Signed-in user";
+  const subtitle = email ?? "Not signed in";
+
   return (
     <section className="overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container">
       <div className="relative h-24 bg-gradient-to-r from-primary/20 via-primary-container/10 to-transparent">
@@ -21,8 +28,8 @@ export function SettingsProfileCard() {
       <div className="px-6 pb-6 pt-12">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-headline text-lg font-bold text-on-surface">Admin User</h2>
-            <p className="text-xs text-on-surface-variant">admin@securicorp.io · System Overseer</p>
+            <h2 className="font-headline text-lg font-bold capitalize text-on-surface">{displayName}</h2>
+            <p className="text-xs text-on-surface-variant">{subtitle}</p>
           </div>
           <button
             type="button"
@@ -34,16 +41,16 @@ export function SettingsProfileCard() {
         </div>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg bg-surface-container-low p-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Role</span>
-            <p className="mt-1 text-sm font-semibold text-on-surface">Administrator</p>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Session</span>
+            <p className="mt-1 text-sm font-semibold text-on-surface">Supabase Auth</p>
           </div>
           <div className="rounded-lg bg-surface-container-low p-4">
             <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Region</span>
             <p className="mt-1 text-sm font-semibold text-on-surface">West Coast</p>
           </div>
           <div className="rounded-lg bg-surface-container-low p-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Joined</span>
-            <p className="mt-1 text-sm font-semibold text-on-surface">Jan 2023</p>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Access</span>
+            <p className="mt-1 text-sm font-semibold text-on-surface">Per-user Gmail</p>
           </div>
         </div>
       </div>

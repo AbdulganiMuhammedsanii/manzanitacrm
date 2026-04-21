@@ -34,10 +34,10 @@ export function CrmSidebar({ onNavigate, className = "" }: CrmSidebarProps) {
           className="mb-1 block text-lg font-black uppercase tracking-widest text-emerald-400"
           onClick={onNavigate}
         >
-          SecuriCorp CRM
+          Manzanita CRM
         </Link>
         <div className="font-[family-name:var(--font-manrope)] text-sm tracking-tight text-slate-400">
-          Precision Security Admin
+          Sales workspace
         </div>
       </div>
       <nav className="mt-4 flex-1 space-y-1 px-2" aria-label="Main">

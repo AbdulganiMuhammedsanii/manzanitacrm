@@ -5,9 +5,10 @@ import { MaterialIcon } from "@/components/crm/material-icon";
 
 type CrmTopbarProps = {
   onMenuClick?: () => void;
+  userEmail: string | null;
 };
 
-export function CrmTopbar({ onMenuClick }: CrmTopbarProps) {
+export function CrmTopbar({ onMenuClick, userEmail }: CrmTopbarProps) {
   const pathname = usePathname();
   const isCampaigns =
     pathname === "/campaigns" || pathname?.startsWith("/campaigns/");
@@ -43,8 +44,25 @@ export function CrmTopbar({ onMenuClick }: CrmTopbarProps) {
           />
         </div>
       </div>
-      <div className="flex items-center gap-4 sm:gap-6">
-        <div className="flex items-center gap-4 text-slate-400">
+      <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+        {userEmail ? (
+          <span
+            className="hidden max-w-[10rem] truncate text-[11px] text-slate-500 sm:block md:max-w-[14rem]"
+            title={userEmail}
+          >
+            {userEmail}
+          </span>
+        ) : null}
+        <form action="/auth/signout" method="post" className="shrink-0">
+          <button
+            type="submit"
+            className="rounded-lg border border-outline-variant/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-slate-400 transition-colors hover:border-primary/40 hover:text-primary"
+          >
+            Sign out
+          </button>
+        </form>
+        <div className="hidden h-6 w-px bg-slate-800/50 sm:block" />
+        <div className="hidden items-center gap-4 text-slate-400 sm:flex">
           <button
             type="button"
             className="scale-98 transition-colors hover:text-emerald-300 active:opacity-80"

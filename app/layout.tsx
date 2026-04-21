@@ -14,10 +14,10 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Outbound CRM",
-    template: "%s · Outbound CRM",
+    default: "Manzanita CRM",
+    template: "%s · Manzanita CRM",
   },
-  description: "Outbound sales CRM",
+  description: "Manzanita CRM — outbound sales workspace",
 };
 
 export default function RootLayout({

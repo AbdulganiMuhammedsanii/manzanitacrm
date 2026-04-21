@@ -5,8 +5,10 @@ import { SettingsProfileCard } from "@/components/settings/settings-profile-card
 import { SettingsRow } from "@/components/settings/settings-row";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
+import { DEFAULT_CAMPAIGN_ID } from "@/lib/campaign-constants";
 import { getGmailOAuthRedirectUri } from "@/lib/app-url";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
@@ -24,8 +26,24 @@ export default async function SettingsPage({
   const gmailStatus = typeof sp.gmail === "string" ? sp.gmail : undefined;
   const gmailReason = typeof sp.reason === "string" ? sp.reason : undefined;
 
-  const gmailRow = await getGmailIntegration(supabaseAdmin);
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const gmailRow = user ? await getGmailIntegration(supabaseAdmin, user.id) : null;
   const gmailConnected = isGmailReady(gmailRow);
+
+  const { data: cfg } = await supabaseAdmin
+    .from("campaign_config")
+    .select("sender_user_id")
+    .eq("id", DEFAULT_CAMPAIGN_ID)
+    .maybeSingle();
+
+  const senderId = cfg?.sender_user_id ?? null;
+  const senderRow = senderId ? await getGmailIntegration(supabaseAdmin, senderId) : null;
+  const batchSenderEmail = senderRow?.google_email ?? null;
+  const isCurrentUserBatchSender = Boolean(user && senderId === user.id);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-8">
@@ -38,7 +56,7 @@ export default async function SettingsPage({
         </p>
       </div>
 
-      <SettingsProfileCard />
+      <SettingsProfileCard email={user?.email ?? null} />
 
       <SettingsSection
         title="Notifications"
@@ -112,6 +130,8 @@ export default async function SettingsPage({
             oauthRedirectUri={getGmailOAuthRedirectUri()}
             status={gmailStatus}
             reason={gmailReason}
+            batchSenderEmail={batchSenderEmail}
+            isCurrentUserBatchSender={isCurrentUserBatchSender}
           />
         </div>
         <SettingsRow

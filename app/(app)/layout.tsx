@@ -1,9 +1,15 @@
 import { CrmShell } from "@/components/crm/crm-shell";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <CrmShell>{children}</CrmShell>;
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return <CrmShell userEmail={user?.email ?? null}>{children}</CrmShell>;
 }

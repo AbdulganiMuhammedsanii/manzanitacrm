@@ -6,8 +6,8 @@ import { MaterialIcon } from "@/components/crm/material-icon";
 import {
   LeadStatusBadge,
 } from "@/components/leads/lead-status-badge";
+import { PAGE_SIZE_OPTIONS } from "@/lib/leads-params";
 import type { LeadsPipelineRow } from "@/lib/leads-ui-map";
-import { PAGE_SIZE_OPTIONS } from "@/lib/leads-queries";
 
 export type { LeadsPipelineRow };
 

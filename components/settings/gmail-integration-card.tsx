@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BatchSenderButton } from "@/components/settings/batch-sender-button";
 import { MaterialIcon } from "@/components/crm/material-icon";
 
 type GmailIntegrationCardProps = {
@@ -11,6 +12,9 @@ type GmailIntegrationCardProps = {
   /** From URL ?gmail= */
   status?: string;
   reason?: string;
+  /** Google account used for POST /api/campaign/dispatch (cron) when configured */
+  batchSenderEmail: string | null;
+  isCurrentUserBatchSender: boolean;
 };
 
 export function GmailIntegrationCard({
@@ -19,13 +23,21 @@ export function GmailIntegrationCard({
   oauthRedirectUri,
   status,
   reason,
+  batchSenderEmail,
+  isCurrentUserBatchSender,
 }: GmailIntegrationCardProps) {
   const banner = useMemo(() => {
     if (status === "connected") {
-      return { tone: "ok" as const, text: "Gmail connected. Campaign sends will use this account." };
+      return {
+        tone: "ok" as const,
+        text: "Gmail connected for your CRM login. Test sends and (if selected) batch sends use this inbox.",
+      };
     }
     if (status === "disconnected") {
-      return { tone: "muted" as const, text: "Gmail disconnected. Sends are logged only until you connect again." };
+      return {
+        tone: "muted" as const,
+        text: "Gmail disconnected for your account. Batch runs still log to the CRM but won’t deliver real email without a sender.",
+      };
     }
     if (status === "error") {
       return {
@@ -35,6 +47,8 @@ export function GmailIntegrationCard({
     }
     return null;
   }, [status, reason]);
+
+  const showClaimBatch = connected && !isCurrentUserBatchSender;
 
   return (
     <div className="space-y-3 rounded-xl border border-outline-variant/15 bg-surface-container/30 p-4">
@@ -58,16 +72,31 @@ export function GmailIntegrationCard({
           <div>
             <p className="text-sm font-bold text-on-surface">Gmail (OAuth)</p>
             <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">
-              Sign in with Google and approve sending — your password is never stored. Only a refresh token is saved in
-              your database for this workspace.
+              Sign in with Google and approve sending — your password is never stored. A refresh token is saved in the
+              database <span className="font-semibold text-on-surface">for your CRM user only</span>; other people who
+              open this app sign in separately and connect their own Gmail if they need it.
             </p>
             {connected && email ? (
-              <p className="mt-2 text-xs font-medium text-primary-fixed-dim">Sending as {email}</p>
+              <p className="mt-2 text-xs font-medium text-primary-fixed-dim">Your integration: {email}</p>
             ) : (
               <p className="mt-2 text-xs text-on-surface-variant">
-                Not connected — campaign batch runs still log to the CRM but do not email leads.
+                Not connected for your account — campaign test sends won’t go out until you connect.
               </p>
             )}
+            <div className="mt-3 rounded-lg border border-outline-variant/10 bg-surface-container-low/40 px-3 py-2 text-xs text-on-surface-variant">
+              <p className="font-bold text-on-surface">Automated batch / cron sends</p>
+              <p className="mt-1 leading-relaxed">
+                {batchSenderEmail ? (
+                  <>
+                    Currently sent from <span className="text-on-surface">{batchSenderEmail}</span>
+                    {isCurrentUserBatchSender ? " (your account)." : "."}
+                  </>
+                ) : (
+                  <>No sender selected — connect Gmail, then assign who sends batches (below).</>
+                )}
+              </p>
+              {showClaimBatch ? <BatchSenderButton /> : null}
+            </div>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
