@@ -75,6 +75,12 @@ const REGISTRY_LIST: RegistryEntry[] = [
     kind: "computed",
     resolve: (l) => addressFromLead(l),
   },
+  {
+    keys: ["unsubscribe_url", "unsubscribe_link", "opt_out_url"],
+    leadsRef: "one-click opt-out (signed link, per recipient when sending)",
+    kind: "computed",
+    resolve: () => "[Unsubscribe link is added when each email is sent]",
+  },
 ];
 
 const registryByNormalizedKey = new Map<string, RegistryEntry>();
@@ -103,9 +109,18 @@ export const MERGE_TAG_REFERENCE: { example: string; leadsRef: string }[] = REGI
 
 /**
  * Replace `{{ ... }}` with values from the lead row. Unknown tags are left unchanged.
+ * `extras` (e.g. `unsubscribe_url`) override static registry tags for keys like `{{unsubscribe_url}}`.
  */
-export function applyMergeTags(text: string, lead: LeadRow): string {
+export function applyMergeTags(
+  text: string,
+  lead: LeadRow,
+  extras?: Record<string, string>
+): string {
   return text.replace(/\{\{\s*([^}]+)\s*\}\}/g, (full, inner: string) => {
+    const nk = normalizeMergeKey(inner.trim());
+    if (extras && nk in extras) {
+      return extras[nk]!;
+    }
     const entry = lookupMergeTag(inner);
     if (!entry) return full;
     return entry.resolve(lead);

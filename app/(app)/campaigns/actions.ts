@@ -9,6 +9,7 @@ import type { CampaignConfigRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { sendGmailMessage } from "@/lib/gmail-send";
 import { applyMergeTags } from "@/lib/merge-tags";
+import { buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -121,8 +122,14 @@ export async function sendTestCampaignEmail(params: {
     return { ok: false, error: "Connect Gmail under Settings (for your account) first." };
   }
 
-  const mergedSubject = applyMergeTags(params.subject, SAMPLE_MERGE_LEAD);
-  const mergedBody = applyMergeTags(params.body, SAMPLE_MERGE_LEAD);
+  const demoUnsub = buildUnsubscribeUrl(SAMPLE_MERGE_LEAD.id);
+  const mergeExtras = {
+    unsubscribe_url: demoUnsub,
+    unsubscribe_link: demoUnsub,
+    opt_out_url: demoUnsub,
+  };
+  const mergedSubject = applyMergeTags(params.subject, SAMPLE_MERGE_LEAD, mergeExtras);
+  const mergedBody = applyMergeTags(params.body, SAMPLE_MERGE_LEAD, mergeExtras);
   const subjectLine = `[Test] ${mergedSubject}`.slice(0, 998);
 
   const mail = await sendGmailMessage({

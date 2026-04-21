@@ -5,6 +5,7 @@ import { calendarDayInTimeZone, isWithinSendWindow } from "@/lib/campaign-time";
 import type { Database, LeadRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { sendGmailMessage } from "@/lib/gmail-send";
+import { buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -27,6 +28,19 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 type Job = { leadId: string; stepIndex: number };
+
+async function loadOptedOutLeadIds(admin: AdminClient, leadIds: string[]): Promise<Set<string>> {
+  const uniq = [...new Set(leadIds)].filter(Boolean);
+  if (uniq.length === 0) return new Set();
+
+  const { data, error } = await admin.from("leads").select("id").eq("email_status", "unsubscribed").in("id", uniq);
+
+  if (error) {
+    console.error(error);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => r.id));
+}
 
 export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatchResult> {
   const { data: cfg, error: cfgErr } = await admin
@@ -127,7 +141,8 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
     .from("leads")
     .select("id, email")
     .eq("is_emailed", false)
-    .not("email", "is", null);
+    .not("email", "is", null)
+    .or("email_status.is.null,email_status.neq.unsubscribed");
 
   if (coldErr) {
     return { ok: true, sent: 0, attempted: 0, details: [], message: coldErr.message };
@@ -185,7 +200,12 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
   for (const j of jobs) {
     unique.set(`${j.leadId}:${j.stepIndex}`, j);
   }
-  const pool = shuffle([...unique.values()]).slice(0, remaining);
+
+  const jobList = [...unique.values()];
+  const optedOutIds = await loadOptedOutLeadIds(admin, jobList.map((j) => j.leadId));
+  const eligibleJobs = jobList.filter((j) => !optedOutIds.has(j.leadId));
+
+  const pool = shuffle(eligibleJobs).slice(0, remaining);
 
   if (pool.length === 0) {
     return {
@@ -214,9 +234,13 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
     if (leadErr || !lead) continue;
     const lr = lead as LeadRow;
     if (!lr.email?.trim()) continue;
+    if (lr.email_status === "unsubscribed") continue;
 
-    const subject = applyMergeTags(step.subject, lr);
-    const body = applyMergeTags(step.body, lr);
+    const unsubUrl = buildUnsubscribeUrl(job.leadId);
+    const mergeExtras = { unsubscribe_url: unsubUrl, unsubscribe_link: unsubUrl, opt_out_url: unsubUrl };
+
+    const subject = applyMergeTags(step.subject, lr, mergeExtras);
+    const body = applyMergeTags(step.body, lr, mergeExtras);
 
     if (isGmailReady(gmailRow)) {
       const mail = await sendGmailMessage({
