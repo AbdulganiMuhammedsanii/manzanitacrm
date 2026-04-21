@@ -17,6 +17,8 @@ export type LeadsStats = {
 };
 
 export type CountyBar = {
+  /** Raw `county` value from the database (for map / drill-down matching). */
+  county: string;
   label: string;
   shortLabel: string;
   count: number;
@@ -181,6 +183,7 @@ export async function fetchCountyDistribution(limit = 5): Promise<CountyBar[]> {
   const max = sorted[0]?.[1] ?? 1;
 
   return sorted.map(([county, count]) => ({
+    county,
     label: `${county} · ${count}`,
     shortLabel: county.length > 12 ? `${county.slice(0, 11)}…` : county,
     count,
