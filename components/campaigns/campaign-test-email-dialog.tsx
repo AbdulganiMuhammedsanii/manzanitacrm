@@ -8,6 +8,10 @@ type CampaignTestEmailDialogProps = {
   toEmail: string;
   onToEmailChange: (v: string) => void;
   onSend: () => void;
+  /** Copy the real `/v/<token>` URL for the lead matching Send to (requires TRACKED_ASSET_ID). */
+  onCopyTrackedLink?: () => void;
+  copyTrackedPending?: boolean;
+  trackedAssetConfigured: boolean;
   pending: boolean;
   /** Success or error message */
   notice: string | null;
@@ -20,6 +24,9 @@ export function CampaignTestEmailDialog({
   toEmail,
   onToEmailChange,
   onSend,
+  onCopyTrackedLink,
+  copyTrackedPending,
+  trackedAssetConfigured,
   pending,
   notice,
   activeStepLabel,
@@ -45,11 +52,25 @@ export function CampaignTestEmailDialog({
               Send one test email
             </h3>
             <p className="mt-1 text-xs text-on-surface-variant">
-              Uses <span className="text-on-surface">{activeStepLabel}</span> copy with{" "}
-              <span className="italic">sample</span> merge data (same as the preview). Does{" "}
-              <span className="font-bold text-primary-fixed-dim">not</span> log to the campaign, change leads, or count
-              toward your daily cap.
+              Uses <span className="text-on-surface">{activeStepLabel}</span> copy. Merge tags match a{" "}
+              <span className="font-bold text-on-surface">real lead</span> when <span className="text-on-surface">Send to</span>{" "}
+              equals their CRM email (otherwise sample data).{" "}
+              <span className="font-bold text-primary-fixed-dim">Does not</span> log to the campaign or count toward the
+              daily cap.
             </p>
+            {trackedAssetConfigured ? (
+              <p className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200/95">
+                Tracked PDF is on: <code className="text-emerald-100">{"{{pdf_link}}"}</code>,{" "}
+                <code className="text-emerald-100">{"{{tracked_pdf_url}}"}</code>,{" "}
+                <code className="text-emerald-100">{"{{asset_link}}"}</code> resolve to your domain → log → S3 on send and
+                in tests when the recipient matches a lead.
+              </p>
+            ) : (
+              <p className="mt-2 rounded-lg border border-outline-variant/20 bg-surface-container-low/80 px-3 py-2 text-xs text-on-surface-variant">
+                To use tracked PDF links in email, set <code className="text-on-surface">TRACKED_ASSET_ID</code> on the
+                server (your <code className="text-on-surface">tracked_assets.id</code>).
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -81,7 +102,18 @@ export function CampaignTestEmailDialog({
           </p>
         ) : null}
 
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
+        <div className="mt-6 flex flex-wrap items-center justify-end gap-2">
+          {trackedAssetConfigured && onCopyTrackedLink ? (
+            <button
+              type="button"
+              disabled={copyTrackedPending || !toEmail.trim()}
+              onClick={onCopyTrackedLink}
+              className="mr-auto flex items-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container-low px-4 py-2 text-xs font-bold uppercase tracking-widest text-on-surface hover:bg-surface-container disabled:opacity-50"
+            >
+              <MaterialIcon name="content_copy" className="text-sm" />
+              {copyTrackedPending ? "Copying…" : "Copy tracked link"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onClose}

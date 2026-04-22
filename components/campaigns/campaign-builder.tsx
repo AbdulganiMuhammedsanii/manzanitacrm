@@ -23,6 +23,7 @@ import { SAMPLE_MERGE_LEAD } from "@/lib/campaign-sample-lead";
 import { applyMergeTags } from "@/lib/merge-tags";
 import {
   dispatchCampaignBatch,
+  getTrackedPdfUrlForTestEmail,
   saveCampaignSequence,
   sendTestCampaignEmail,
 } from "@/app/(app)/campaigns/actions";
@@ -71,6 +72,7 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testNotice, setTestNotice] = useState<string | null>(null);
+  const [copyTrackedPending, startCopyTracked] = useTransition();
 
   const current = steps.find((s) => s.stepIndex === activeStep) ?? steps[0];
 
@@ -128,6 +130,23 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
         setTestNotice("Sent. Check the inbox (subject starts with [Test]).");
       } else {
         setTestNotice(r.error);
+      }
+    });
+  }
+
+  function handleCopyTrackedLink() {
+    setTestNotice(null);
+    startCopyTracked(async () => {
+      const r = await getTrackedPdfUrlForTestEmail(testTo);
+      if (!r.ok) {
+        setTestNotice(r.error);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(r.url);
+        setTestNotice("Copied tracked URL — paste into a browser to test open logging + PDF.");
+      } catch {
+        setTestNotice(`Copy failed — open this URL manually:\n${r.url}`);
       }
     });
   }
@@ -198,6 +217,11 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
         toEmail={testTo}
         onToEmailChange={setTestTo}
         onSend={handleSendTest}
+        onCopyTrackedLink={
+          initial.trackedAssetConfigured ? handleCopyTrackedLink : undefined
+        }
+        copyTrackedPending={copyTrackedPending}
+        trackedAssetConfigured={initial.trackedAssetConfigured}
         pending={testPending}
         notice={testNotice}
         activeStepLabel={`Email ${activeStep}`}

@@ -9,6 +9,8 @@ export type CampaignPageData = {
   sentToday: number;
   pendingNeverEmailed: number;
   inSequence: number;
+  /** True when `TRACKED_ASSET_ID` is set — `{{pdf_link}}` etc. resolve in test + batch sends. */
+  trackedAssetConfigured: boolean;
 };
 
 export async function fetchCampaignPageData(): Promise<CampaignPageData | null> {
@@ -65,5 +67,6 @@ export async function fetchCampaignPageData(): Promise<CampaignPageData | null> 
     sentToday: sentToday ?? 0,
     pendingNeverEmailed: pendingNeverEmailed ?? 0,
     inSequence: inSequence ?? 0,
+    trackedAssetConfigured: Boolean(process.env.TRACKED_ASSET_ID?.trim()),
   };
 }

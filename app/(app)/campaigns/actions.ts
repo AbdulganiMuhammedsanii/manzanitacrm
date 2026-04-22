@@ -9,8 +9,10 @@ import type { CampaignConfigRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { sendGmailMessage } from "@/lib/gmail-send";
 import { buildCampaignEmailHtml, buildTestEmailDisclaimerHtml } from "@/lib/campaign-email-html";
+import { buildCampaignMergeExtras } from "@/lib/campaign-merge-extras";
+import { buildTrackedAssetUrl } from "@/lib/asset-track-url";
 import { applyMergeTags } from "@/lib/merge-tags";
-import { appendUnsubscribeFooter, buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
+import { appendUnsubscribeFooter } from "@/lib/unsubscribe-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
@@ -137,12 +139,8 @@ export async function sendTestCampaignEmail(params: {
 
   const matchedLead = await resolveLeadRowForTestEmail(to);
   const mergeLead = matchedLead ?? SAMPLE_MERGE_LEAD;
-  const unsubUrl = buildUnsubscribeUrl(mergeLead.id);
-  const mergeExtras = {
-    unsubscribe_url: unsubUrl,
-    unsubscribe_link: unsubUrl,
-    opt_out_url: unsubUrl,
-  };
+  const mergeExtras = buildCampaignMergeExtras(mergeLead.id);
+  const unsubUrl = mergeExtras.unsubscribe_url!;
   const mergedSubject = applyMergeTags(params.subject, mergeLead, mergeExtras);
   const mergedCore = applyMergeTags(params.body, mergeLead, mergeExtras);
   const mergedBodyWithOptOut = appendUnsubscribeFooter(mergedCore, unsubUrl);
@@ -167,4 +165,51 @@ export async function sendTestCampaignEmail(params: {
     return { ok: false, error: mail.error };
   }
   return { ok: true };
+}
+
+export type TrackedUrlForTestResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
+
+/**
+ * Builds the same `/v/<token>` URL used in sends for {{pdf_link}}, for the lead matching To.
+ * Does not require Gmail — use to verify tracking before sending a test.
+ */
+export async function getTrackedPdfUrlForTestEmail(toEmail: string): Promise<TrackedUrlForTestResult> {
+  const assetId = process.env.TRACKED_ASSET_ID?.trim();
+  if (!assetId) {
+    return { ok: false, error: "Set TRACKED_ASSET_ID in the server environment (tracked_assets row id)." };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Sign in first." };
+  }
+
+  const trimmed = toEmail.trim();
+  if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  const lead = await resolveLeadRowForTestEmail(trimmed);
+  if (!lead) {
+    return {
+      ok: false,
+      error:
+        "No lead matches this email — use the exact address from Leads (add one first), or the link will 404.",
+    };
+  }
+
+  try {
+    const url = buildTrackedAssetUrl(lead.id, assetId);
+    return { ok: true, url };
+  } catch {
+    return {
+      ok: false,
+      error: "Could not sign the link — set ASSET_TRACK_SECRET or UNSUBSCRIBE_SECRET / CRON_SECRET.",
+    };
+  }
 }

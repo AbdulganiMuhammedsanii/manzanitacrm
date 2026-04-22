@@ -6,6 +6,7 @@ import type { Database, LeadRow } from "@/lib/database.types";
 import { getGmailIntegration, isGmailReady } from "@/lib/gmail-integration";
 import { buildCampaignEmailHtml } from "@/lib/campaign-email-html";
 import { sendGmailMessage } from "@/lib/gmail-send";
+import { buildCampaignMergeExtras } from "@/lib/campaign-merge-extras";
 import { appendUnsubscribeFooter, buildUnsubscribeUrl } from "@/lib/unsubscribe-url";
 
 type AdminClient = SupabaseClient<Database>;
@@ -238,7 +239,7 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
     if (lr.email_status === "unsubscribed") continue;
 
     const unsubUrl = buildUnsubscribeUrl(job.leadId);
-    const mergeExtras = { unsubscribe_url: unsubUrl, unsubscribe_link: unsubUrl, opt_out_url: unsubUrl };
+    const mergeExtras = buildCampaignMergeExtras(job.leadId);
 
     const subject = applyMergeTags(step.subject, lr, mergeExtras);
     const bodyRaw = applyMergeTags(step.body, lr, mergeExtras);

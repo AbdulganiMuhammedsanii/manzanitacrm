@@ -115,6 +115,32 @@ export type GmailIntegrationUpdate = Partial<
   Omit<GmailIntegrationRow, "user_id" | "updated_at">
 > & { updated_at?: string };
 
+export type TrackedAssetRow = {
+  id: string;
+  label: string;
+  s3_bucket: string | null;
+  s3_key: string;
+  created_at: string;
+};
+
+export type TrackedAssetInsert = Omit<TrackedAssetRow, "id" | "created_at"> & {
+  id?: string;
+  created_at?: string;
+};
+
+export type AssetOpenEventRow = {
+  id: string;
+  lead_id: string;
+  asset_id: string;
+  opened_at: string;
+  user_agent: string | null;
+};
+
+export type AssetOpenEventInsert = Omit<AssetOpenEventRow, "id" | "opened_at"> & {
+  id?: string;
+  opened_at?: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -152,6 +178,18 @@ export type Database = {
         Row: GmailIntegrationRow;
         Insert: GmailIntegrationInsert;
         Update: GmailIntegrationUpdate;
+        Relationships: [];
+      };
+      tracked_assets: {
+        Row: TrackedAssetRow;
+        Insert: TrackedAssetInsert;
+        Update: Partial<Omit<TrackedAssetRow, "id" | "created_at">>;
+        Relationships: [];
+      };
+      asset_open_events: {
+        Row: AssetOpenEventRow;
+        Insert: AssetOpenEventInsert;
+        Update: Partial<Omit<AssetOpenEventRow, "id">>;
         Relationships: [];
       };
     };
