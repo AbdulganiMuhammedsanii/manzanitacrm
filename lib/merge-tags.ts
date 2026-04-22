@@ -84,10 +84,10 @@ const REGISTRY_LIST: RegistryEntry[] = [
   {
     keys: ["tracked_pdf_url", "pdf_link", "asset_link"],
     leadsRef:
-      "tracked file URL when TRACKED_ASSET_ID is set and a tracked_assets row exists for that id",
+      "full tracked URL at send time (HTML email shows “Check it out here” linked by default; plain text keeps the URL)",
     kind: "computed",
     resolve: () =>
-      "[Tracked PDF URL when TRACKED_ASSET_ID is set at send time — see tracked_assets / env]",
+      "[Tracked PDF URL when TRACKED_ASSET_ID is set at send time — use {{tracked_pdf_url}}]",
   },
 ];
 

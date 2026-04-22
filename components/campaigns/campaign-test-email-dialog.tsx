@@ -60,10 +60,10 @@ export function CampaignTestEmailDialog({
             </p>
             {trackedAssetConfigured ? (
               <p className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200/95">
-                Tracked PDF is on: <code className="text-emerald-100">{"{{pdf_link}}"}</code>,{" "}
-                <code className="text-emerald-100">{"{{tracked_pdf_url}}"}</code>,{" "}
-                <code className="text-emerald-100">{"{{asset_link}}"}</code> resolve to your domain → log → S3 on send and
-                in tests when the recipient matches a lead.
+                Tracked PDF is on: use <code className="text-emerald-100">{"{{tracked_pdf_url}}"}</code> in the body — HTML
+                shows <span className="italic">Check it out here</span> as the link; plain text still has the full URL.
+                Aliases: <code className="text-emerald-100">{"{{pdf_link}}"}</code>,{" "}
+                <code className="text-emerald-100">{"{{asset_link}}"}</code>.
               </p>
             ) : (
               <p className="mt-2 rounded-lg border border-outline-variant/20 bg-surface-container-low/80 px-3 py-2 text-xs text-on-surface-variant">

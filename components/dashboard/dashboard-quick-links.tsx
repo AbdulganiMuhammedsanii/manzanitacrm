@@ -15,6 +15,12 @@ const LINKS = [
     icon: "campaign",
   },
   {
+    href: "/tracking",
+    title: "Tracked file opens",
+    description: "Who opened PDF links from tracked campaign URLs — by email.",
+    icon: "visibility",
+  },
+  {
     href: "/analytics",
     title: "Performance analytics",
     description: "Funnel, regions, and outbound volume trends.",

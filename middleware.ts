@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import type { Database } from "@/lib/database.types";
 
-const APP_PREFIXES = ["/dashboard", "/leads", "/campaigns", "/analytics", "/settings"] as const;
+const APP_PREFIXES = ["/dashboard", "/leads", "/campaigns", "/tracking", "/analytics", "/settings"] as const;
 
 function needsAppAuth(pathname: string): boolean {
   if (pathname === "/") return true;

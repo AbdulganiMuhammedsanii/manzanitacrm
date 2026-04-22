@@ -150,7 +150,9 @@ export async function sendTestCampaignEmail(params: {
   const subjectLine = `[Test] ${mergedSubject}`.slice(0, 998);
 
   const htmlFull =
-    buildCampaignEmailHtml(mergedBodyWithOptOut, unsubUrl) + buildTestEmailDisclaimerHtml();
+    buildCampaignEmailHtml(mergedBodyWithOptOut, unsubUrl, {
+      trackedPdfUrl: mergeExtras.pdf_link,
+    }) + buildTestEmailDisclaimerHtml();
 
   const mail = await sendGmailMessage({
     refreshToken: integration.refresh_token,

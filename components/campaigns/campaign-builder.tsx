@@ -76,15 +76,33 @@ export function CampaignBuilder({ initial }: CampaignBuilderProps) {
 
   const current = steps.find((s) => s.stepIndex === activeStep) ?? steps[0];
 
+  /** Fake URL so `{{tracked_pdf_url}}` resolves in preview; shown as “Check it out here” like HTML email. */
+  const previewMergeExtras = useMemo((): Record<string, string> | undefined => {
+    if (!initial.trackedAssetConfigured) return undefined;
+    const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const fakeUrl = `${base}/v/preview`;
+    return {
+      pdf_link: fakeUrl,
+      tracked_pdf_url: fakeUrl,
+      asset_link: fakeUrl,
+    };
+  }, [initial.trackedAssetConfigured]);
+
+  const PREVIEW_TRACKED_LABEL = "Check it out here";
+
   const { mergedSubject, mergedBody } = useMemo(() => {
     if (!current) {
       return { mergedSubject: "", mergedBody: "" };
     }
+    const sub = applyMergeTags(current.subject, SAMPLE_MERGE_LEAD, previewMergeExtras);
+    const bod = applyMergeTags(current.body, SAMPLE_MERGE_LEAD, previewMergeExtras);
+    const fake = previewMergeExtras?.pdf_link;
+    const hideFakeUrl = (s: string) => (fake ? s.split(fake).join(PREVIEW_TRACKED_LABEL) : s);
     return {
-      mergedSubject: applyMergeTags(current.subject, SAMPLE_MERGE_LEAD),
-      mergedBody: applyMergeTags(current.body, SAMPLE_MERGE_LEAD),
+      mergedSubject: hideFakeUrl(sub),
+      mergedBody: hideFakeUrl(bod),
     };
-  }, [current]);
+  }, [current, previewMergeExtras]);
 
   function updateStepSubject(stepIndex: number, value: string) {
     setSteps((prev) => prev.map((s) => (s.stepIndex === stepIndex ? { ...s, subject: value } : s)));

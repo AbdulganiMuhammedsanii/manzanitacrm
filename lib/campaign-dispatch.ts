@@ -242,9 +242,13 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
     const mergeExtras = buildCampaignMergeExtras(job.leadId);
 
     const subject = applyMergeTags(step.subject, lr, mergeExtras);
-    const bodyRaw = applyMergeTags(step.body, lr, mergeExtras);
-    const body = appendUnsubscribeFooter(bodyRaw, unsubUrl);
-    const bodyHtml = buildCampaignEmailHtml(body, unsubUrl);
+
+    const bodyMerged = applyMergeTags(step.body, lr, mergeExtras);
+    const bodyWithFooter = appendUnsubscribeFooter(bodyMerged, unsubUrl);
+    const bodyPlain = bodyWithFooter;
+    const bodyHtml = buildCampaignEmailHtml(bodyWithFooter, unsubUrl, {
+      trackedPdfUrl: mergeExtras.pdf_link,
+    });
 
     if (isGmailReady(gmailRow)) {
       const mail = await sendGmailMessage({
@@ -252,7 +256,7 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
         fromEmail: gmailRow.google_email,
         to: lr.email!.trim(),
         subject,
-        bodyText: body,
+        bodyText: bodyPlain,
         bodyHtml,
       });
       if (!mail.ok) {
@@ -268,7 +272,7 @@ export async function runOutboundBatch(admin: AdminClient): Promise<DispatchBatc
       sent_at: isoNow,
       send_calendar_day: todayKey,
       subject_line: subject,
-      body_text: body,
+      body_text: bodyPlain,
     });
 
     if (insErr) {
